@@ -1,7 +1,11 @@
 # Amazon Bestseller Trends & Literary Analytics (2009–2019)
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-GitHub_Pages-success?style=for-the-badge&logo=github)](https://gokul-0507.github.io/amazon-book-analyzer/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> 🌐 **Live Website Link**: **[https://gokul-0507.github.io/amazon-book-analyzer/](https://gokul-0507.github.io/amazon-book-analyzer/)**  
+> Explore the interactive visual dashboard directly in your browser with zero server setup or latency.
 
 An end-to-end data science and front-end engineering platform that analyzes Amazon's Top 50 Bestselling Books from 2009 to 2019. The project includes automated data cleaning, publication-grade analytical figures (300 DPI), a browser-based interactive exploration dashboard with zero-latency client-side filtering, and an optional companion Streamlit application.
 
