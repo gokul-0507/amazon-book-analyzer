@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Amazon Bestseller Trends (2009–2019) | Literary Analytics</title>
+  <meta name="description" content="Interactive visual explorer of Amazon's Top 50 bestselling books from 2009 to 2019.">
+
+  <!-- Google Fonts: Newsreader (Characterful Serif) & Plus Jakarta Sans (Geometric Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            canvas: '#F8F6F0',
+            surface: '#EFECE3',
+            surfaceHover: '#E5E1D5',
+            ink: '#1A1A18',
+            soft: '#5E5B52',
+            borderLine: '#D9D5C7',
+            navy: '#185FA5',
+            navyHover: '#134D85',
+            rust: '#C05621',
+            rustLight: '#FBD38D',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --bg: #F8F6F0;
+      --surface: #EFECE3;
+      --ink: #1A1A18;
+      --soft: #5E5B52;
+      --line: #D9D5C7;
+      --navy: #185FA5;
+      --rust: #C05621;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    h1, h2, h3, .font-serif {
+      font-family: 'Newsreader', Georgia, serif;
+    }
+    input[type=range] {
+      accent-color: var(--navy);
+    }
+    /* Ruled layout borders */
+    .ruled-bottom {
+      border-bottom: 1px solid var(--line);
+    }
+    .ruled-top {
+      border-top: 1px solid var(--line);
+    }
+    .ruled-x {
+      border-left: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+    }
+    /* Smooth interaction styling */
+    button, input, select {
+      transition: all 0.15s ease-in-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        transition: none !important;
+        animation: none !important;
+      }
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--line);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased selection:bg-amber-200 selection:text-neutral-900">
+
+  <!-- Global Header & Masthead -->
+  <header class="ruled-bottom bg-canvas pt-10 pb-8 px-6 lg:px-12 max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row md:items-baseline justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-widest text-soft font-semibold mb-2">Empirical Bestseller Archive · 2009 to 2019</p>
+        <h1 class="text-3xl md:text-5xl font-serif font-medium tracking-tight text-ink">
+          The Anatomy of Amazon Bestsellers
+        </h1>
+      </div>
+      <p class="text-sm text-soft max-w-md leading-relaxed font-sans">
+        Examining 550 annual rankings across Fiction and Non Fiction to identify dominant authors, category shifts, price elasticity, and long-tail staying power.
+      </p>
+    </div>
+  </header>
+
+  <!-- Sticky Interactive Controls Bar -->
+  <section class="sticky top-0 z-40 bg-surface/95 backdrop-blur-md ruled-bottom shadow-sm py-4 px-6 lg:px-12">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-5">
+      
+      <!-- Year Range Filter -->
+      <div class="flex items-center gap-3">
+        <label class="text-xs font-semibold uppercase tracking-wider text-soft" for="yearMin">Years:</label>
+        <div class="flex items-center gap-2 bg-canvas px-3 py-1.5 rounded border border-borderLine text-sm font-medium">
+          <input type="range" id="yearMin" min="2009" max="2019" value="2009" class="w-20 md:w-28 cursor-pointer" aria-label="Starting Year">
+          <span id="yearMinLabel" class="font-bold text-ink">2009</span>
+          <span class="text-soft">–</span>
+          <span id="yearMaxLabel" class="font-bold text-ink">2019</span>
+          <input type="range" id="yearMax" min="2009" max="2019" value="2019" class="w-20 md:w-28 cursor-pointer" aria-label="Ending Year">
+        </div>
+      </div>
+
+      <!-- Category Filter Chips -->
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-semibold uppercase tracking-wider text-soft mr-1">Category:</span>
+        <button id="chipFiction" type="button" aria-pressed="true"
+          class="px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-navy text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-navy focus:ring-offset-2">
+          Fiction
+        </button>
+        <button id="chipNonFiction" type="button" aria-pressed="true"
+          class="px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-rust text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-rust focus:ring-offset-2">
+          Non Fiction
+        </button>
+      </div>
+
+      <!-- Author Search Box & Reset -->
+      <div class="flex items-center gap-3 flex-1 min-w-[240px] max-w-md justify-end">
+        <div class="relative w-full">
+          <input type="search" id="authorSearch" placeholder="Filter by author or book title..." 
+            class="w-full bg-canvas text-sm border border-borderLine rounded px-3 py-1.5 pr-8 placeholder:text-soft/70 focus:outline-none focus:border-navy focus:ring-1 focus:ring-navy">
+          <button id="clearSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-soft hover:text-ink font-bold" title="Clear search">×</button>
+        </div>
+        <button id="resetFiltersBtn" type="button" 
+          class="text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded border border-borderLine bg-canvas hover:bg-surface text-soft hover:text-ink focus:outline-none">
+          Reset
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+
+    <!-- Loading State -->
+    <div id="loadingState" class="py-20 text-center">
+      <div class="inline-block w-8 h-8 border-2 border-navy border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-soft text-sm">Loading verified bestseller archive...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorState" class="hidden my-8 p-6 bg-red-50 border border-red-200 rounded text-red-900">
+      <h3 class="font-bold text-lg mb-1">Data Engine Unavailable</h3>
+      <p class="text-sm mb-3">Unable to fetch the bestseller dataset JSON payload.</p>
+      <button onclick="location.reload()" class="px-4 py-2 bg-red-800 text-white text-xs font-semibold uppercase rounded hover:bg-red-900">Reload Explorer</button>
+    </div>
+
+    <!-- Empty State (No Matches) -->
+    <div id="emptyState" class="hidden my-12 p-8 text-center bg-surface border border-borderLine rounded">
+      <h3 class="text-xl font-serif text-ink mb-2">No Matching Bestsellers</h3>
+      <p id="emptyReason" class="text-sm text-soft max-w-md mx-auto mb-5 leading-relaxed">
+        No records match the current combination of year range, categories, and author search criteria.
+      </p>
+      <button id="emptyResetBtn" type="button" 
+        class="px-5 py-2.5 bg-navy text-white text-xs font-semibold uppercase tracking-wider rounded hover:bg-navyHover focus:ring-2 focus:ring-navy focus:ring-offset-2">
+        Reset All Filters
+      </button>
+    </div>
+
+    <!-- Active Content Area -->
+    <div id="contentArea" class="hidden space-y-12">
+
+      <!-- Active Filter Pill Indicator -->
+      <div id="activeFilterPill" class="hidden items-center gap-2 text-xs text-soft bg-surface border border-borderLine px-4 py-2 rounded">
+        <span>Active author filter: <strong id="filterAuthorName" class="text-ink"></strong></span>
+        <button id="removeAuthorFilter" class="ml-auto underline hover:text-navy font-medium">Clear author filter</button>
+      </div>
+
+      <!-- Headline Numbers Strip (Asymmetric Ruled Grid) -->
+      <section aria-label="Key Summary Metrics" class="ruled-top ruled-bottom py-6 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div class="pr-4">
+          <span class="text-xs uppercase tracking-wider text-soft font-semibold block mb-1">Total Listings</span>
+          <p id="statListings" class="text-3xl md:text-4xl font-serif font-semibold text-ink">550</p>
+          <span class="text-[11px] text-soft">Within filtered years</span>
+        </div>
+        <div class="pr-4 md:border-l border-borderLine md:pl-6">
+          <span class="text-xs uppercase tracking-wider text-soft font-semibold block mb-1">Unique Books</span>
+          <p id="statUniqueBooks" class="text-3xl md:text-4xl font-serif font-semibold text-navy">347</p>
+          <span class="text-[11px] text-soft">Distinct bestselling titles</span>
+        </div>
+        <div class="pr-4 border-t md:border-t-0 md:border-l border-borderLine pt-4 md:pt-0 md:pl-6">
+          <span class="text-xs uppercase tracking-wider text-soft font-semibold block mb-1">Mean Rating</span>
+          <p id="statAvgRating" class="text-3xl md:text-4xl font-serif font-semibold text-ink">4.62</p>
+          <span class="text-[11px] text-soft">Out of 5.0 customer stars</span>
+        </div>
+        <div class="border-t md:border-t-0 md:border-l border-borderLine pt-4 md:pt-0 md:pl-6">
+          <span class="text-xs uppercase tracking-wider text-soft font-semibold block mb-1">Average Price</span>
+          <p id="statAvgPrice" class="text-3xl md:text-4xl font-serif font-semibold text-rust">$13.39</p>
+          <span class="text-[11px] text-soft">Excludes free promotional items</span>
+        </div>
+      </section>
+
+      <!-- Section: Research Questions 1 & 2 (Asymmetric 2-column) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Q1: Top Authors Leaderboard (7 cols) -->
+        <section class="lg:col-span-7 bg-canvas">
+          <div class="flex items-baseline justify-between mb-2">
+            <h2 class="text-xl font-serif font-medium text-ink">
+              Q1. Top Authors by Unique Bestsellers
+            </h2>
+            <span class="text-xs text-soft font-sans">Click bar to filter page</span>
+          </div>
+          <p class="text-xs text-soft mb-4">Ranked by count of distinct titles reaching the Top 50 in the selected years.</p>
+          <div id="chartQ1Container" class="space-y-2.5 font-sans">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- Q2: Category Breakdown & Split (5 cols) -->
+        <section class="lg:col-span-5 bg-surface p-6 rounded border border-borderLine">
+          <h2 class="text-xl font-serif font-medium text-ink mb-1">
+            Q2. Category Mix Over Time
+          </h2>
+          <p class="text-xs text-soft mb-5">Annual share of Top 50 spots by genre.</p>
+          
+          <div id="chartQ2MixBars" class="space-y-2 text-xs font-sans">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <div class="flex items-center gap-6 mt-5 pt-4 border-t border-borderLine text-xs text-soft">
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-navy inline-block"></span> Fiction</span>
+            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-rust inline-block"></span> Non Fiction</span>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Section: Research Questions 3 & 6 (Fresh Entrants + Longevity Distribution) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Q3: Fresh Entrants (6 cols) -->
+        <section class="lg:col-span-6 bg-surface p-6 rounded border border-borderLine">
+          <h2 class="text-xl font-serif font-medium text-ink mb-1">
+            Q3. Annual Roster Turnover
+          </h2>
+          <p class="text-xs text-soft mb-5">Number of brand-new titles entering the bestseller list for the first time.</p>
+          <svg id="chartQ3Svg" viewBox="0 0 520 220" class="w-full overflow-visible" role="img" aria-label="New titles entering the bestseller list per year"></svg>
+        </section>
+
+        <!-- Q6: Staying Power Distribution (6 cols) -->
+        <section class="lg:col-span-6 bg-canvas p-6 rounded border border-borderLine">
+          <h2 class="text-xl font-serif font-medium text-ink mb-1">
+            Q6. Staying Power by Category
+          </h2>
+          <p class="text-xs text-soft mb-5">Longevity distribution: total years charted across Fiction vs. Non Fiction titles.</p>
+          <svg id="chartQ6Svg" viewBox="0 0 520 220" class="w-full overflow-visible" role="img" aria-label="Staying power distribution by category"></svg>
+        </section>
+
+      </div>
+
+      <!-- Section: Research Questions 4 & 5 (Most Reviewed + Price Correlation) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Q4: Top 10 Most Reviewed (6 cols) -->
+        <section class="lg:col-span-6 bg-canvas">
+          <h2 class="text-xl font-serif font-medium text-ink mb-1">
+            Q4. Most Reviewed Bestsellers
+          </h2>
+          <p class="text-xs text-soft mb-4">Books with the highest cumulative customer reviews at their peak.</p>
+          <div id="chartQ4Container" class="space-y-2.5 font-sans">
+            <!-- Rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- Q5: Price vs Rating Correlation (6 cols) -->
+        <section class="lg:col-span-6 bg-surface p-6 rounded border border-borderLine">
+          <div class="flex items-baseline justify-between mb-1">
+            <h2 class="text-xl font-serif font-medium text-ink">
+              Q5. Price vs. Rating Correlation
+            </h2>
+            <span id="corrBadge" class="text-xs font-semibold px-2 py-0.5 rounded bg-canvas border border-borderLine text-soft">r = -0.12</span>
+          </div>
+          <p class="text-xs text-soft mb-5">Does paying more mean higher reader satisfaction? (Scatter plot with trendline).</p>
+          <svg id="chartQ5Svg" viewBox="0 0 520 230" class="w-full overflow-visible" role="img" aria-label="Scatter plot of book price versus user rating"></svg>
+        </section>
+
+      </div>
+
+      <!-- Dynamic Data-Driven Key Insights Box -->
+      <section class="bg-surface p-7 rounded border-l-4 border-navy border-t border-r border-b border-borderLine">
+        <h2 class="text-lg font-serif font-medium text-ink mb-2">Automated Empirical Findings</h2>
+        <p id="dynamicInsightsText" class="text-sm text-ink leading-relaxed font-sans">
+          <!-- Dynamically populated from filtered data -->
+        </p>
+      </section>
+
+      <!-- Sortable Detailed Book Records Table -->
+      <section class="space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+          <div>
+            <h2 class="text-2xl font-serif font-medium text-ink">Top Bestselling Books</h2>
+            <p class="text-xs text-soft">Click column headers to sort. Filtered results: <span id="tableCountBadge" class="font-bold text-ink">0</span> titles.</p>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto border border-borderLine rounded bg-canvas">
+          <table class="w-full text-left text-xs font-sans">
+            <thead class="bg-surface border-b border-borderLine uppercase tracking-wider text-soft font-semibold select-none">
+              <tr>
+                <th scope="col" class="py-3 px-4 w-12 text-center">#</th>
+                <th scope="col" class="py-3 px-4 cursor-pointer hover:text-ink" data-sort="title">Title ▾</th>
+                <th scope="col" class="py-3 px-4 cursor-pointer hover:text-ink" data-sort="author">Author ▾</th>
+                <th scope="col" class="py-3 px-3 cursor-pointer hover:text-ink" data-sort="genre">Genre ▾</th>
+                <th scope="col" class="py-3 px-3 text-right cursor-pointer hover:text-ink" data-sort="rating">Rating ▾</th>
+                <th scope="col" class="py-3 px-4 text-right cursor-pointer hover:text-ink" data-sort="reviews">Reviews ▾</th>
+                <th scope="col" class="py-3 px-3 text-right cursor-pointer hover:text-ink" data-sort="price">Price ▾</th>
+                <th scope="col" class="py-3 px-3 text-center cursor-pointer hover:text-ink" data-sort="appearances">Years ▾</th>
+              </tr>
+            </thead>
+            <tbody id="booksTableBody" class="divide-y divide-borderLine text-ink">
+              <!-- Dynamically populated rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Honest "About This Data" Section -->
+      <section class="ruled-top pt-10 pb-6 text-xs text-soft space-y-4 leading-relaxed font-sans">
+        <h2 class="text-base font-serif font-semibold text-ink">About This Data & Analytical Limits</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <h3 class="font-semibold text-ink uppercase tracking-wider text-[11px] mb-1">Source & Scope</h3>
+            <p>
+              This explorer utilizes the Kaggle <em>Amazon Top 50 Bestselling Books (2009–2019)</em> dataset originally curated by Sohier Dane and Vijay Choudhary. It contains strictly 550 annual bestseller listings across 11 calendar years.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-ink uppercase tracking-wider text-[11px] mb-1">Category Granularity</h3>
+            <p>
+              Amazon’s taxonomy in this dataset is restricted strictly to two macro genres: <strong>Fiction</strong> and <strong>Non Fiction</strong>. Subcategories such as memoirs, graphic novels, culinary, or business texts are consolidated within these two designations.
+            </p>
+          </div>
+          <div>
+            <h3 class="font-semibold text-ink uppercase tracking-wider text-[11px] mb-1">What This Data Cannot Answer</h3>
+            <p>
+              Customer reviews represent historical snapshots at peak listing time rather than cumulative daily reads. Zero-dollar price points represent temporary Kindle promotions or complimentary print companion editions. Unit sales volumes and royalty splits are not disclosed by Amazon.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Global Footer -->
+  <footer class="ruled-top py-8 px-6 lg:px-12 bg-surface text-center text-xs text-soft font-sans">
+    <p>Amazon Bestsellers Explorer · Built with Tailwind CSS, Charting SVGs, and Vanilla JavaScript.</p>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    (function() {
+      // Global Data State
+      let rawData = null;
+      let state = {
+        minYear: 2009,
+        maxYear: 2019,
+        genres: { 'Fiction': true, 'Non Fiction': true },
+        authorQuery: '',
+        selectedAuthor: null,
+        sortColumn: 'reviews',
+        sortAsc: false
+      };
+
+      // DOM Elements
+      const yearMin = document.getElementById('yearMin');
+      const yearMax = document.getElementById('yearMax');
+      const yearMinLabel = document.getElementById('yearMinLabel');
+      const yearMaxLabel = document.getElementById('yearMaxLabel');
+      const chipFiction = document.getElementById('chipFiction');
+      const chipNonFiction = document.getElementById('chipNonFiction');
+      const authorSearch = document.getElementById('authorSearch');
+      const clearSearchBtn = document.getElementById('clearSearchBtn');
+      const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+      const emptyResetBtn = document.getElementById('emptyResetBtn');
+
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const emptyState = document.getElementById('emptyState');
+      const emptyReason = document.getElementById('emptyReason');
+      const contentArea = document.getElementById('contentArea');
+
+      const activeFilterPill = document.getElementById('activeFilterPill');
+      const filterAuthorName = document.getElementById('filterAuthorName');
+      const removeAuthorFilter = document.getElementById('removeAuthorFilter');
+
+      // Fetch and Initialize Data
+      fetch('data.json')
+        .then(response => {
+          if (!response.ok) throw new Error('Network response not ok: ' + response.statusText);
+          return response.json();
+        })
+        .then(data => {
+          rawData = data;
+          loadingState.classList.add('hidden');
+          contentArea.classList.remove('hidden');
+          setupEventListeners();
+          render();
+        })
+        .catch(err => {
+          console.error('Data load error:', err);
+          loadingState.classList.add('hidden');
+          errorState.classList.remove('hidden');
+        });
+
+      function setupEventListeners() {
+        yearMin.addEventListener('input', (e) => {
+          state.minYear = parseInt(e.target.value);
+          if (state.minYear > state.maxYear) {
+            state.maxYear = state.minYear;
+            yearMax.value = state.maxYear;
+          }
+          yearMinLabel.textContent = state.minYear;
+          yearMaxLabel.textContent = state.maxYear;
+          render();
+        });
+
+        yearMax.addEventListener('input', (e) => {
+          state.maxYear = parseInt(e.target.value);
+          if (state.maxYear < state.minYear) {
+            state.minYear = state.maxYear;
+            yearMin.value = state.minYear;
+          }
+          yearMinLabel.textContent = state.minYear;
+          yearMaxLabel.textContent = state.maxYear;
+          render();
+        });
+
+        chipFiction.addEventListener('click', () => {
+          state.genres['Fiction'] = !state.genres['Fiction'];
+          updateChipStyles();
+          render();
+        });
+
+        chipNonFiction.addEventListener('click', () => {
+          state.genres['Non Fiction'] = !state.genres['Non Fiction'];
+          updateChipStyles();
+          render();
+        });
+
+        authorSearch.addEventListener('input', (e) => {
+          state.authorQuery = e.target.value.trim().toLowerCase();
+          clearSearchBtn.classList.toggle('hidden', state.authorQuery.length === 0);
+          render();
+        });
+
+        clearSearchBtn.addEventListener('click', () => {
+          authorSearch.value = '';
+          state.authorQuery = '';
+          clearSearchBtn.classList.add('hidden');
+          render();
+        });
+
+        const resetAll = () => {
+          state.minYear = 2009;
+          state.maxYear = 2019;
+          state.genres = { 'Fiction': true, 'Non Fiction': true };
+          state.authorQuery = '';
+          state.selectedAuthor = null;
+          yearMin.value = 2009;
+          yearMax.value = 2019;
+          yearMinLabel.textContent = '2009';
+          yearMaxLabel.textContent = '2019';
+          authorSearch.value = '';
+          clearSearchBtn.classList.add('hidden');
+          updateChipStyles();
+          render();
+        };
+
+        resetFiltersBtn.addEventListener('click', resetAll);
+        emptyResetBtn.addEventListener('click', resetAll);
+
+        removeAuthorFilter.addEventListener('click', () => {
+          state.selectedAuthor = null;
+          render();
+        });
+
+        // Table Sorting Header Clicks
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+          th.addEventListener('click', () => {
+            const col = th.getAttribute('data-sort');
+            if (state.sortColumn === col) {
+              state.sortAsc = !state.sortAsc;
+            } else {
+              state.sortColumn = col;
+              state.sortAsc = col === 'title' || col === 'author'; // text asc by default, numbers desc
+            }
+            renderTable();
+          });
+        });
+      }
+
+      function updateChipStyles() {
+        chipFiction.setAttribute('aria-pressed', state.genres['Fiction']);
+        chipFiction.className = state.genres['Fiction']
+          ? 'px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-navy text-white hover:opacity-95'
+          : 'px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-canvas text-soft hover:bg-surface';
+
+        chipNonFiction.setAttribute('aria-pressed', state.genres['Non Fiction']);
+        chipNonFiction.className = state.genres['Non Fiction']
+          ? 'px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-rust text-white hover:opacity-95'
+          : 'px-3 py-1.5 text-xs font-semibold rounded border border-borderLine bg-canvas text-soft hover:bg-surface';
+      }
+
+      // Filter Data Pipeline
+      function getFilteredData() {
+        if (!rawData) return { listings: [], uniqueBooks: [] };
+
+        // 1. Filter listings
+        const listings = rawData.all_listings.filter(item => {
+          if (item.year < state.minYear || item.year > state.maxYear) return false;
+          if (!state.genres[item.genre]) return false;
+          if (state.selectedAuthor && item.author !== state.selectedAuthor) return false;
+          if (state.authorQuery) {
+            const matchAuthor = item.author.toLowerCase().includes(state.authorQuery);
+            const matchTitle = item.title.toLowerCase().includes(state.authorQuery);
+            if (!matchAuthor && !matchTitle) return false;
+          }
+          return true;
+        });
+
+        // 2. Derive unique books from filtered listings
+        const bookMap = new Map();
+        listings.forEach(item => {
+          const key = item.title + '___' + item.author;
+          if (!bookMap.has(key)) {
+            bookMap.set(key, {
+              title: item.title,
+              author: item.author,
+              genre: item.genre,
+              rating: item.rating,
+              reviews: item.reviews,
+              price: item.price,
+              years: [item.year],
+              appearances: 1
+            });
+          } else {
+            const existing = bookMap.get(key);
+            existing.years.push(item.year);
+            existing.appearances = existing.years.length;
+            if (item.reviews > existing.reviews) {
+              existing.reviews = item.reviews;
+              existing.rating = item.rating;
+              existing.price = item.price;
+            }
+          }
+        });
+
+        const uniqueBooks = Array.from(bookMap.values());
+        return { listings, uniqueBooks };
+      }
+
+      function render() {
+        // Author Filter Pill
+        if (state.selectedAuthor) {
+          activeFilterPill.classList.remove('hidden');
+          activeFilterPill.classList.add('flex');
+          filterAuthorName.textContent = state.selectedAuthor;
+        } else {
+          activeFilterPill.classList.add('hidden');
+          activeFilterPill.classList.remove('flex');
+        }
+
+        const { listings, uniqueBooks } = getFilteredData();
+
+        // Check Empty State
+        if (listings.length === 0) {
+          contentArea.classList.add('hidden');
+          emptyState.classList.remove('hidden');
+          let reasons = [];
+          if (!state.genres['Fiction'] && !state.genres['Non Fiction']) {
+            reasons.push('both categories are unselected');
+          }
+          if (state.selectedAuthor) {
+            reasons.push(`filtered to author "${state.selectedAuthor}"`);
+          }
+          if (state.authorQuery) {
+            reasons.push(`query "${state.authorQuery}" matched 0 books`);
+          }
+          emptyReason.textContent = reasons.length 
+            ? 'No books match because ' + reasons.join(', and ') + '.'
+            : 'No bestselling books charted in this specific selection.';
+          return;
+        }
+
+        emptyState.classList.add('hidden');
+        contentArea.classList.remove('hidden');
+
+        renderHeadlineNumbers(listings, uniqueBooks);
+        renderQ1TopAuthors(uniqueBooks);
+        renderQ2CategoryMix(listings);
+        renderQ3Turnover(listings);
+        renderQ4MostReviewed(uniqueBooks);
+        renderQ5PriceRatingCorrelation(listings);
+        renderQ6StayingPower(uniqueBooks);
+        renderDynamicInsights(listings, uniqueBooks);
+        renderTable(uniqueBooks);
+      }
+
+      function renderHeadlineNumbers(listings, uniqueBooks) {
+        document.getElementById('statListings').textContent = listings.length.toLocaleString();
+        document.getElementById('statUniqueBooks').textContent = uniqueBooks.length.toLocaleString();
+
+        const avgRating = listings.reduce((acc, curr) => acc + curr.rating, 0) / listings.length;
+        document.getElementById('statAvgRating').textContent = avgRating.toFixed(2);
+
+        const priced = listings.filter(i => i.price > 0);
+        const avgPrice = priced.length ? priced.reduce((acc, curr) => acc + curr.price, 0) / priced.length : 0;
+        document.getElementById('statAvgPrice').textContent = avgPrice ? '$' + avgPrice.toFixed(2) : 'n/a';
+      }
+
+      // Q1: Top Authors
+      function renderQ1TopAuthors(uniqueBooks) {
+        const counts = {};
+        uniqueBooks.forEach(b => counts[b.author] = (counts[b.author] || 0) + 1);
+        const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        const container = document.getElementById('chartQ1Container');
+        const maxVal = sorted.length ? sorted[0][1] : 1;
+
+        container.innerHTML = sorted.map(([author, count], idx) => {
+          const widthPct = Math.max(12, Math.round((count / maxVal) * 85));
+          const isSelected = state.selectedAuthor === author;
+          return `
+            <div class="flex items-center gap-3 text-xs group cursor-pointer" onclick="window.selectAuthorFilter('${author.replace(/'/g, "\\'")}')">
+              <span class="w-32 sm:w-44 truncate text-right font-medium ${isSelected ? 'text-navy font-bold' : 'text-soft group-hover:text-ink'}" title="${author}">${author}</span>
+              <div class="flex-1 bg-surface h-5 rounded overflow-hidden flex items-center">
+                <div class="h-full ${idx === 0 ? 'bg-navy' : 'bg-slate-500'} rounded transition-all group-hover:bg-navy" style="width: ${widthPct}%"></div>
+              </div>
+              <span class="w-12 text-soft font-mono font-semibold">${count} ${count === 1 ? 'bk' : 'bks'}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      window.selectAuthorFilter = function(author) {
+        state.selectedAuthor = state.selectedAuthor === author ? null : author;
+        render();
+      };
+
+      // Q2: Category Mix Over Time
+      function renderQ2CategoryMix(listings) {
+        const byYear = {};
+        for (let y = state.minYear; y <= state.maxYear; y++) {
+          byYear[y] = { Fiction: 0, 'Non Fiction': 0, total: 0 };
+        }
+        listings.forEach(item => {
+          if (byYear[item.year]) {
+            byYear[item.year][item.genre]++;
+            byYear[item.year].total++;
+          }
+        });
+
+        const container = document.getElementById('chartQ2MixBars');
+        const years = Object.keys(byYear).map(Number).sort();
+
+        container.innerHTML = years.map(yr => {
+          const d = byYear[yr];
+          if (d.total === 0) return '';
+          const fPct = Math.round((d.Fiction / d.total) * 100);
+          const nfPct = 100 - fPct;
+          return `
+            <div class="flex items-center gap-2">
+              <span class="w-10 font-mono text-soft text-[11px]">${yr}</span>
+              <div class="flex-1 h-4 bg-surface rounded overflow-hidden flex text-[10px] font-bold text-white leading-4">
+                ${fPct > 0 ? `<div style="width: ${fPct}%" class="bg-navy px-1.5 truncate text-left" title="Fiction: ${fPct}%">${fPct}%</div>` : ''}
+                ${nfPct > 0 ? `<div style="width: ${nfPct}%" class="bg-rust px-1.5 truncate text-right ml-auto" title="Non Fiction: ${nfPct}%">${nfPct}%</div>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Q3: Fresh Entrants Turnover
+      function renderQ3Turnover(listings) {
+        const svg = document.getElementById('chartQ3Svg');
+        const seen = new Set();
+        const years = [];
+        for (let y = 2009; y <= 2019; y++) years.push(y);
+
+        const newByYear = {};
+        years.forEach(y => {
+          const yTitles = rawData.all_listings.filter(i => i.year === y).map(i => i.title);
+          const fresh = yTitles.filter(t => !seen.has(t));
+          newByYear[y] = fresh.length;
+          yTitles.forEach(t => seen.add(t));
+        });
+
+        const activeYears = years.filter(y => y >= state.minYear && y <= state.maxYear);
+        const maxVal = 55;
+        const width = 520, height = 220, padLeft = 40, padBottom = 30;
+        const plotW = width - padLeft - 20;
+        const plotH = height - padBottom - 20;
+
+        let svgHtml = `<line x1="${padLeft}" y1="${height - padBottom}" x2="${width}" y2="${height - padBottom}" stroke="#D9D5C7" stroke-width="1"/>`;
+
+        const step = activeYears.length > 1 ? plotW / activeYears.length : plotW / 2;
+
+        activeYears.forEach((yr, idx) => {
+          const count = newByYear[yr] || 0;
+          const barW = Math.min(28, step * 0.65);
+          const barH = (count / maxVal) * plotH;
+          const x = padLeft + idx * step + (step - barW) / 2;
+          const y = (height - padBottom) - barH;
+          const isBaseline = yr === 2009;
+
+          svgHtml += `
+            <rect x="${x}" y="${y}" width="${barW}" height="${barH}" fill="${isBaseline ? '#88867E' : '#2B6CB0'}" rx="2">
+              <title>${yr}: ${count} new titles</title>
+            </rect>
+            <text x="${x + barW / 2}" y="${y - 5}" font-size="10" font-weight="bold" fill="#1A1A18" text-anchor="middle">${count}</text>
+            <text x="${x + barW / 2}" y="${height - 10}" font-size="10" fill="#5E5B52" text-anchor="middle">${yr}</text>
+          `;
+        });
+
+        svg.innerHTML = svgHtml;
+      }
+
+      // Q4: Most Reviewed Books
+      function renderQ4MostReviewed(uniqueBooks) {
+        const sorted = [...uniqueBooks].sort((a, b) => b.reviews - a.reviews).slice(0, 8);
+        const container = document.getElementById('chartQ4Container');
+        const maxRev = sorted.length ? sorted[0].reviews : 1;
+
+        container.innerHTML = sorted.map((b, idx) => {
+          const widthPct = Math.max(10, Math.round((b.reviews / maxRev) * 85));
+          const color = b.genre === 'Fiction' ? 'bg-navy' : 'bg-rust';
+          return `
+            <div class="space-y-0.5 text-xs">
+              <div class="flex justify-between items-baseline">
+                <span class="font-medium text-ink truncate pr-2" title="${b.title}">${b.title} <span class="text-soft font-normal text-[11px]">(${b.author})</span></span>
+                <span class="text-soft font-mono font-semibold shrink-0">${b.reviews.toLocaleString()} revs · ★ ${b.rating.toFixed(1)}</span>
+              </div>
+              <div class="h-3.5 bg-surface rounded overflow-hidden flex items-center">
+                <div class="h-full ${color} rounded" style="width: ${widthPct}%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Q5: Price vs Rating Correlation
+      function renderQ5PriceRatingCorrelation(listings) {
+        const priced = listings.filter(i => i.price > 0);
+        const svg = document.getElementById('chartQ5Svg');
+        const badge = document.getElementById('corrBadge');
+
+        if (priced.length < 3) {
+          svg.innerHTML = `<text x="260" y="110" font-size="12" fill="#5E5B52" text-anchor="middle">Not enough priced items</text>`;
+          badge.textContent = 'r = n/a';
+          return;
+        }
+
+        // Pearson Correlation calculation
+        const meanX = priced.reduce((a, c) => a + c.price, 0) / priced.length;
+        const meanY = priced.reduce((a, c) => a + c.rating, 0) / priced.length;
+        let num = 0, denX = 0, denY = 0;
+        priced.forEach(i => {
+          num += (i.price - meanX) * (i.rating - meanY);
+          denX += Math.pow(i.price - meanX, 2);
+          denY += Math.pow(i.rating - meanY, 2);
+        });
+        const r = (denX > 0 && denY > 0) ? num / Math.sqrt(denX * denY) : 0;
+        badge.textContent = `Pearson r = ${r.toFixed(2)}`;
+
+        const width = 520, height = 230, padLeft = 45, padBottom = 35;
+        const plotW = width - padLeft - 20;
+        const plotH = height - padBottom - 20;
+
+        const maxPrice = Math.max(45, Math.ceil(Math.max(...priced.map(i => i.price)) / 10) * 10);
+        const minRating = 3.2, maxRating = 5.0;
+
+        const scaleX = val => padLeft + (val / maxPrice) * plotW;
+        const scaleY = val => (height - padBottom) - ((val - minRating) / (maxRating - minRating)) * plotH;
+
+        let svgHtml = `
+          <line x1="${padLeft}" y1="${height - padBottom}" x2="${width}" y2="${height - padBottom}" stroke="#D9D5C7" stroke-width="1"/>
+          <line x1="${padLeft}" y1="20" x2="${padLeft}" y2="${height - padBottom}" stroke="#D9D5C7" stroke-width="1"/>
+        `;
+
+        // Y-axis ticks
+        [3.5, 4.0, 4.5, 5.0].forEach(rt => {
+          const y = scaleY(rt);
+          svgHtml += `
+            <line x1="${padLeft - 4}" y1="${y}" x2="${width}" y2="${y}" stroke="#EFECE3" stroke-dasharray="3,3"/>
+            <text x="${padLeft - 8}" y="${y + 4}" font-size="9" fill="#5E5B52" text-anchor="end">${rt.toFixed(1)}</text>
+          `;
+        });
+
+        // X-axis ticks
+        [0, 15, 30, 45, 60].filter(p => p <= maxPrice).forEach(pr => {
+          const x = scaleX(pr);
+          svgHtml += `
+            <text x="${x}" y="${height - 15}" font-size="9" fill="#5E5B52" text-anchor="middle">$${pr}</text>
+          `;
+        });
+
+        // Points
+        priced.forEach(i => {
+          const cx = scaleX(i.price);
+          const cy = scaleY(i.rating);
+          const fill = i.genre === 'Fiction' ? '#185FA5' : '#C05621';
+          svgHtml += `
+            <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3" fill="${fill}" opacity="0.55">
+              <title>${i.title}: $${i.price} | ★ ${i.rating}</title>
+            </circle>
+          `;
+        });
+
+        // Regression Line
+        const slope = (denX > 0) ? num / denX : 0;
+        const intercept = meanY - slope * meanX;
+        const x1 = 0, y1 = intercept;
+        const x2 = maxPrice, y2 = intercept + slope * maxPrice;
+
+        svgHtml += `
+          <line x1="${scaleX(x1).toFixed(1)}" y1="${scaleY(y1).toFixed(1)}" x2="${scaleX(x2).toFixed(1)}" y2="${scaleY(y2).toFixed(1)}" 
+            stroke="#C05621" stroke-width="2.2" stroke-linecap="round"/>
+        `;
+
+        svg.innerHTML = svgHtml;
+      }
+
+      // Q6: Staying Power Distribution
+      function renderQ6StayingPower(uniqueBooks) {
+        const svg = document.getElementById('chartQ6Svg');
+        const fList = uniqueBooks.filter(b => b.genre === 'Fiction').map(b => b.appearances);
+        const nfList = uniqueBooks.filter(b => b.genre === 'Non Fiction').map(b => b.appearances);
+
+        const width = 520, height = 220, padLeft = 80, padBottom = 35;
+        const plotW = width - padLeft - 30;
+        const plotH = height - padBottom - 20;
+
+        let svgHtml = `
+          <line x1="${padLeft}" y1="${height - padBottom}" x2="${width}" y2="${height - padBottom}" stroke="#D9D5C7" stroke-width="1"/>
+        `;
+
+        const maxYears = 10;
+        const scaleX = val => padLeft + ((val - 1) / (maxYears - 1)) * plotW;
+
+        for (let y = 1; y <= 10; y++) {
+          const x = scaleX(y);
+          svgHtml += `
+            <text x="${x}" y="${height - 15}" font-size="10" fill="#5E5B52" text-anchor="middle">${y}y</text>
+          `;
+        }
+
+        const drawBox = (data, yMid, color, label) => {
+          if (!data.length) return;
+          data.sort((a, b) => a - b);
+          const q1 = data[Math.floor(data.length * 0.25)];
+          const median = data[Math.floor(data.length * 0.5)];
+          const q3 = data[Math.floor(data.length * 0.75)];
+          const min = data[0];
+          const max = data[data.length - 1];
+          const mean = data.reduce((a, c) => a + c, 0) / data.length;
+
+          const boxLeft = scaleX(q1);
+          const boxRight = scaleX(q3);
+          const boxWidth = Math.max(3, boxRight - boxLeft);
+
+          svgHtml += `
+            <text x="${padLeft - 10}" y="${yMid + 4}" font-size="11" font-weight="bold" fill="#1A1A18" text-anchor="end">${label}</text>
+            <line x1="${scaleX(min)}" y1="${yMid}" x2="${scaleX(max)}" y2="${yMid}" stroke="${color}" stroke-width="2"/>
+            <rect x="${boxLeft}" y="${yMid - 16}" width="${boxWidth}" height="32" fill="${color}" fill-opacity="0.25" stroke="${color}" stroke-width="1.5" rx="3"/>
+            <line x1="${scaleX(median)}" y1="${yMid - 16}" x2="${scaleX(median)}" y2="${yMid + 16}" stroke="${color}" stroke-width="3"/>
+            <circle cx="${scaleX(mean)}" cy="${yMid}" r="4" fill="#1A1A18" stroke="#FFFFFF" stroke-width="1">
+              <title>Mean: ${mean.toFixed(2)} years</title>
+            </circle>
+          `;
+        };
+
+        drawBox(fList, 65, '#185FA5', 'Fiction');
+        drawBox(nfList, 135, '#C05621', 'Non Fiction');
+
+        svg.innerHTML = svgHtml;
+      }
+
+      // Auto-Generated Dynamic Insights
+      function renderDynamicInsights(listings, uniqueBooks) {
+        const textEl = document.getElementById('dynamicInsightsText');
+        if (!uniqueBooks.length) return;
+
+        const counts = {};
+        uniqueBooks.forEach(b => counts[b.author] = (counts[b.author] || 0) + 1);
+        const topAuthor = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+
+        const nfCount = uniqueBooks.filter(b => b.genre === 'Non Fiction').length;
+        const nfShare = Math.round((nfCount / uniqueBooks.length) * 100);
+
+        const mostRev = [...uniqueBooks].sort((a, b) => b.reviews - a.reviews)[0];
+
+        const priced = listings.filter(i => i.price > 0);
+        const avgPrice = priced.length ? (priced.reduce((a, c) => a + c.price, 0) / priced.length).toFixed(2) : '0';
+
+        textEl.innerHTML = `
+          In the <strong>${state.minYear}–${state.maxYear}</strong> window, 
+          <strong>${topAuthor ? topAuthor[0] : 'n/a'}</strong> produced the highest volume of unique bestsellers (${topAuthor ? topAuthor[1] : 0} distinct titles). 
+          Non Fiction accounts for <strong>${nfShare}%</strong> of the unique charting titles. 
+          The single most reviewed title in this selection is <em>${mostRev.title}</em> by ${mostRev.author} with 
+          <strong>${mostRev.reviews.toLocaleString()}</strong> reviews and a ${mostRev.rating.toFixed(1)}★ rating. 
+          Book prices averaged <strong>$${avgPrice}</strong>, with empirical correlation showing virtually no dependency between price point and customer rating satisfaction.
+        `;
+      }
+
+      // Sortable Table
+      function renderTable(books) {
+        const uniqueBooks = books || getFilteredData().uniqueBooks;
+        document.getElementById('tableCountBadge').textContent = uniqueBooks.length.toLocaleString();
+
+        const sorted = [...uniqueBooks].sort((a, b) => {
+          let valA = a[state.sortColumn];
+          let valB = b[state.sortColumn];
+          if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+          }
+          if (valA < valB) return state.sortAsc ? -1 : 1;
+          if (valA > valB) return state.sortAsc ? 1 : -1;
+          return 0;
+        });
+
+        const tbody = document.getElementById('booksTableBody');
+        tbody.innerHTML = sorted.map((b, idx) => `
+          <tr class="hover:bg-surface/60 transition-colors">
+            <td class="py-2.5 px-4 text-center font-mono text-soft">${idx + 1}</td>
+            <td class="py-2.5 px-4 font-medium text-ink max-w-xs md:max-w-sm truncate" title="${b.title}">${b.title}</td>
+            <td class="py-2.5 px-4 text-soft hover:text-navy cursor-pointer" onclick="window.selectAuthorFilter('${b.author.replace(/'/g, "\\'")}')">${b.author}</td>
+            <td class="py-2.5 px-3">
+              <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${b.genre === 'Fiction' ? 'bg-blue-100 text-blue-900' : 'bg-amber-100 text-amber-900'}">${b.genre}</span>
+            </td>
+            <td class="py-2.5 px-3 text-right font-mono font-medium">${b.rating.toFixed(1)}★</td>
+            <td class="py-2.5 px-4 text-right font-mono text-soft">${b.reviews.toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-right font-mono">${b.price > 0 ? '$' + b.price.toFixed(2) : '<span class="text-soft italic">free</span>'}</td>
+            <td class="py-2.5 px-3 text-center font-mono font-semibold text-soft">${b.appearances}</td>
+          </tr>
+        `).join('');
+      }
+
+    })();
+  </script>
+</body>
+</html>
